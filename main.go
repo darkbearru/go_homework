@@ -3,105 +3,106 @@ package main
 import (
 	"fmt"
 	"slices"
+	"sort"
+	"strconv"
 	"strings"
 )
 
-const rateUSD2EUR = 1.14
-const rateUSD2RUB = 69.00
-const rateEUR2RUB = rateUSD2RUB / rateUSD2EUR
+const ErrorInvalidOperation = "...Неверное название операции"
+const ErrorInvalidNumbers = "...Неверный перечень чисел"
 
-var currencies = []string{"USD", "EUR", "RUB"}
+var operations = []string{"AVG", "SUM", "MED"}
 
 // TIP <p>To run your code, right-click the code and select <b>Run</b>.</p> <p>Alternatively, click
 // the <icon src="AllIcons.Actions.Execute"/> icon in the gutter and select the <b>Run</b> menu item from here.</p>
 func main() {
-	var curencySrc string = ""
-	var currencyDst string = ""
-	var amount float64 = 0
-	curencySrc = userCurrencyInput("Enter source currency:", curencySrc)
-	currencyDst = userCurrencyInput("Enter destination currency:", curencySrc)
-	amount = readAmount("Enter amount:")
-	fmt.Printf("Amount: %f %s\n", amount, curencySrc)
-	fmt.Printf("Converted amount: %f %s\n", calculateAmount(amount, curencySrc, currencyDst), currencyDst)
+	var numbers = make([]int, 0, 10)
+	operation := userOperationInput("Выбери операцию:")
+	numbers = readNumbers("Введи список чисел:", numbers)
+
+	fmt.Println("Операция:", operation)
+	fmt.Println("Числа:", numbers)
+
+	switch operation {
+	case "AVG":
+		fmt.Println("Среднее:", operationAVG(numbers))
+	case "SUM":
+		fmt.Println("Сумма:", operationSUM(numbers))
+	case "MED":
+		fmt.Println("Медиана:", operationMED(numbers))
+	}
 }
 
-func userCurrencyInput(message string, selected string) string {
-	var acceptedCurrencies []string
-	var value string
-	for _, currency := range currencies {
-		if currency != selected {
-			acceptedCurrencies = append(acceptedCurrencies, currency)
-		}
-	}
+func userOperationInput(message string) string {
+	var operation string
 	for {
-		fmt.Printf(message+"(%s)\n", strings.Join(acceptedCurrencies, ", "))
-		_, err := fmt.Scan(&value)
+		fmt.Printf(message+"(%s)\n", strings.Join(operations, ", "))
+		_, err := fmt.Scan(&operation)
 		if err != nil {
-			fmt.Println("...Invalid currency")
+			fmt.Println(ErrorInvalidOperation)
 			continue
 		}
-		value = strings.ToUpper(value)
-		if slices.Index(acceptedCurrencies, value) == -1 {
-			fmt.Println("...Invalid currency")
+		operation = strings.ToUpper(operation)
+		if slices.Index(operations, operation) == -1 {
+			fmt.Println(ErrorInvalidOperation)
 			continue
 		}
 		break
 	}
-	return value
+	return operation
 }
 
-func readAmount(message string) float64 {
-	var amount float64
+func readNumbers(message string, numbers []int) []int {
+	var numbersList string
+	var list []string
 	fmt.Println(message)
 	for {
-		_, err := fmt.Scan(&amount)
+		_, err := fmt.Scan(&numbersList)
 		if err != nil {
-			fmt.Println("...Invalid amount")
+			fmt.Println(ErrorInvalidNumbers)
 			continue
+		}
+		list = strings.Split(numbersList, ",")
+		if len(list) == 0 {
+			fmt.Println(ErrorInvalidNumbers)
+			continue
+		}
+		for _, number := range list {
+			num, err := strconv.Atoi(number)
+			if err != nil {
+				fmt.Println(ErrorInvalidNumbers)
+				continue
+			}
+			numbers = append(numbers, num)
 		}
 		break
 	}
-	return amount
+	return numbers
 }
 
-func calculateAmount(amount float64, currencySrc string, currencyDst string) float64 {
-	switch currencySrc {
-	case "USD":
-		return calcUSD(amount, currencyDst)
-	case "EUR":
-		return calcEUR(amount, currencyDst)
-	case "RUB":
-		return calcRUB(amount, currencyDst)
-	}
-	return amount
+func operationAVG(numbers []int) float64 {
+	sum := operationSUM(numbers)
+	return float64(sum) / float64(len(numbers))
 }
 
-func calcUSD(amount float64, currencyDst string) float64 {
-	switch currencyDst {
-	case "EUR":
-		return amount * rateUSD2EUR
-	case "RUB":
-		return amount * rateUSD2RUB
+func operationSUM(numbers []int) int {
+	sum := 0
+	for _, number := range numbers {
+		sum += number
 	}
-	return 0
+	return sum
 }
 
-func calcEUR(amount float64, currencyDst string) float64 {
-	switch currencyDst {
-	case "USD":
-		return amount / rateUSD2EUR
-	case "RUB":
-		return amount * rateEUR2RUB
-	}
-	return 0
-}
+func operationMED(numbers []int) float64 {
+	count := len(numbers)
+	arr := make([]int, count)
+	copy(arr, numbers)
 
-func calcRUB(amount float64, currencyDst string) float64 {
-	switch currencyDst {
-	case "USD":
-		return amount / rateUSD2RUB
-	case "EUR":
-		return amount / rateEUR2RUB
+	sort.Ints(arr)
+
+	if count%2 == 1 {
+		return float64(arr[count/2])
 	}
-	return 0
+
+	return float64(arr[count/2-1]+arr[count/2]) / 2.0
 }
