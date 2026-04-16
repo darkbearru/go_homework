@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"slices"
 	"strings"
 )
 
@@ -10,27 +9,35 @@ const rateUSD2EUR = 1.14
 const rateUSD2RUB = 69.00
 const rateEUR2RUB = rateUSD2RUB / rateUSD2EUR
 
-var currencies = []string{"USD", "EUR", "RUB"}
+var currencies = map[string]int{"USD": 1, "EUR": 1, "RUB": 1}
+var ratesMap = map[string]float64{
+	"USD2RUB": rateUSD2RUB,
+	"USD2EUR": rateUSD2EUR,
+	"EUR2RUB": rateEUR2RUB,
+	"EUR2USD": 1 / rateUSD2EUR,
+	"RUB2USD": 1 / rateUSD2RUB,
+	"RUB2EUR": 1 / rateEUR2RUB,
+}
 
 // TIP <p>To run your code, right-click the code and select <b>Run</b>.</p> <p>Alternatively, click
 // the <icon src="AllIcons.Actions.Execute"/> icon in the gutter and select the <b>Run</b> menu item from here.</p>
 func main() {
-	var curencySrc string = ""
+	var currencySrc string = ""
 	var currencyDst string = ""
 	var amount float64 = 0
-	curencySrc = userCurrencyInput("Enter source currency:", curencySrc)
-	currencyDst = userCurrencyInput("Enter destination currency:", curencySrc)
+	currencySrc = userCurrencyInput("Enter source currency:", currencySrc)
+	currencyDst = userCurrencyInput("Enter destination currency:", currencySrc)
 	amount = readAmount("Enter amount:")
-	fmt.Printf("Amount: %f %s\n", amount, curencySrc)
-	fmt.Printf("Converted amount: %f %s\n", calculateAmount(amount, curencySrc, currencyDst), currencyDst)
+	fmt.Printf("Amount: %f %s\n", amount, currencySrc)
+	fmt.Printf("Converted amount: %f %s\n", calculateAmount(amount, currencySrc, currencyDst), currencyDst)
 }
 
 func userCurrencyInput(message string, selected string) string {
-	var acceptedCurrencies []string
 	var value string
-	for _, currency := range currencies {
-		if currency != selected {
-			acceptedCurrencies = append(acceptedCurrencies, currency)
+	var acceptedCurrencies []string
+	for value := range currencies {
+		if value != selected {
+			acceptedCurrencies = append(acceptedCurrencies, value)
 		}
 	}
 	for {
@@ -41,7 +48,8 @@ func userCurrencyInput(message string, selected string) string {
 			continue
 		}
 		value = strings.ToUpper(value)
-		if slices.Index(acceptedCurrencies, value) == -1 {
+		_, ok := currencies[value]
+		if !ok {
 			fmt.Println("...Invalid currency")
 			continue
 		}
@@ -65,43 +73,5 @@ func readAmount(message string) float64 {
 }
 
 func calculateAmount(amount float64, currencySrc string, currencyDst string) float64 {
-	switch currencySrc {
-	case "USD":
-		return calcUSD(amount, currencyDst)
-	case "EUR":
-		return calcEUR(amount, currencyDst)
-	case "RUB":
-		return calcRUB(amount, currencyDst)
-	}
-	return amount
-}
-
-func calcUSD(amount float64, currencyDst string) float64 {
-	switch currencyDst {
-	case "EUR":
-		return amount * rateUSD2EUR
-	case "RUB":
-		return amount * rateUSD2RUB
-	}
-	return 0
-}
-
-func calcEUR(amount float64, currencyDst string) float64 {
-	switch currencyDst {
-	case "USD":
-		return amount / rateUSD2EUR
-	case "RUB":
-		return amount * rateEUR2RUB
-	}
-	return 0
-}
-
-func calcRUB(amount float64, currencyDst string) float64 {
-	switch currencyDst {
-	case "USD":
-		return amount / rateUSD2RUB
-	case "EUR":
-		return amount / rateEUR2RUB
-	}
-	return 0
+	return amount * ratesMap[currencySrc+"2"+currencyDst]
 }
